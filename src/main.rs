@@ -3,6 +3,11 @@ use mysql::prelude::*;
 use mysql::*;
 use std::env;
 
+#[derive(Debug, PartialEq, Eq)]
+struct ResultQuery {
+    formula: String,
+}
+
 fn main() {
     dotenv().ok();
     let mysql_port: u16 = read_vars("MYSQL_PORT")
@@ -24,15 +29,32 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     let where_param = &args[1];
 
-    // println!("Searching: {}", where_param);
-
     let mut conn = pool.get_conn().unwrap();
 
-    let select_formulas = conn
-        .query_iter("SELECT formula FROM seguros.plantilla_ramo_cobertura_tarifa WHERE idramo = 3");
+    let all_formulas: Vec<ResultQuery> = conn
+        .query_iter("SELECT formula FROM seguros.plantilla_ramo_cobertura_tarifa WHERE idramo = 3")
+        .map(|row| {
+            row.map(|r| r.unwrap())
+                .map(|r| {
+                    let (formula) = mysql::from_row(r);
 
-    //let filter = select_formulas.filter(|f| f.contains(where_param));
-    println!("{:?}", select_formulas);
+                    ResultQuery { formula }
+                })
+                .collect()
+        })
+        .unwrap();
+
+    for result in all_formulas.iter() {
+        println!("{}", result.formula);
+    }
+    //|for result in all_formulas.iter() {
+    //|}
+    /*.iter()
+    .filter(|row| {
+        let r: String = from_row(row);
+        r.contains(where_param)
+    })
+    .map(|item| /*item.contains(where_param)*/ println!("{:?}", item));*/
 
     //    .for_each(|row| {
     //        let r: String = from_row(row.unwrap());
