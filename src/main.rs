@@ -12,11 +12,11 @@ struct MysqlConnection {
 }
 
 impl MysqlConnection {
-    fn new() {
-        OptsBuilder::from(MysqlConnection::config_db())
+    fn new() -> OptsBuilder {
+        OptsBuilder::from_opts(MysqlConnection::config_db())
     }
 
-    fn config_db() -> Self {
+    fn config_db() -> Opts {
         let mysql_user = read_vars("MYSQL_USER");
         let mysql_pass = read_vars("MYSQL_PASS");
         let mysql_port: u16 = read_vars("MYSQL_PORT")
@@ -25,13 +25,16 @@ impl MysqlConnection {
         let mysql_host = read_vars("MYSQL_HOST");
         let mysql_db = read_vars("MYSQL_DB");
 
-        return MysqlConnection {
-            user: Some(&mysql_user),
-            pass: Some(&mysql_pass),
-            ip_or_hostname: Some(&mysql_port),
+        let mysql_conn = MysqlConnection {
+            user: Some(mysql_user),
+            pass: Some(mysql_pass),
+            ip_or_hostname: Some(mysql_host),
             tcp_port: mysql_port,
-            db_name: Some(&mysql_db),
+            db_name: Some(mysql_db),
         };
+        let opts = Opts::from(mysql_conn);
+
+       opts 
     }
 }
 
