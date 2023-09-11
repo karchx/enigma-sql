@@ -5,7 +5,9 @@ use std::env;
 
 #[derive(Debug, PartialEq, Eq)]
 struct ResultQuery {
-    formula: String,
+    idcobertura: Option<String>,
+    formula: Option<String>,
+    elemento: Option<String>,
 }
 
 fn main() {
@@ -32,34 +34,31 @@ fn main() {
     let mut conn = pool.get_conn().unwrap();
 
     let all_formulas: Vec<ResultQuery> = conn
-        .query_iter("SELECT formula FROM seguros.plantilla_ramo_cobertura_tarifa WHERE idramo = 3")
+        .query_iter("SELECT idcobertura, formula, elemento FROM seguros.plantilla_ramo_cobertura_tarifa WHERE idramo = 3")
         .map(|row| {
             row.map(|r| r.unwrap())
                 .map(|r| {
-                    let (formula) = mysql::from_row(r);
+                    let (idcobertura, formula, elemento) = mysql::from_row(r);
 
-                    ResultQuery { formula }
+                    ResultQuery { idcobertura, formula, elemento }
                 })
                 .collect()
         })
         .unwrap();
 
     for result in all_formulas.iter() {
-        println!("{}", result.formula);
+        match (&result.idcobertura, &result.formula, &result.elemento) {
+            (Some(idcobertura),Some(formula), Some(elemento)) => {
+                let formula_underscore = formula.replace(" ", "_");
+                if formula_underscore.contains(where_param) {
+                    let where_without_underscore = where_param.replace("_", " ");
+                    let replace_formula = formula.replace(&where_without_underscore, "TASA");
+                    println!("{}", replace_formula);
+                }
+            }
+            _ => {}
+        }
     }
-    //|for result in all_formulas.iter() {
-    //|}
-    /*.iter()
-    .filter(|row| {
-        let r: String = from_row(row);
-        r.contains(where_param)
-    })
-    .map(|item| /*item.contains(where_param)*/ println!("{:?}", item));*/
-
-    //    .for_each(|row| {
-    //        let r: String = from_row(row.unwrap());
-    //        println!("{}", r);
-    //    });
 }
 
 fn read_vars(var: &str) -> String {
