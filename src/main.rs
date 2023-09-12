@@ -3,6 +3,7 @@ use mysql::prelude::*;
 use mysql::*;
 use std::env;
 
+//mod transactions;
 #[derive(Debug, PartialEq, Eq)]
 struct MysqlConnection {
     user: Option<String>,
@@ -57,14 +58,16 @@ struct ResultQuery {
 struct UpdateQuery {
     idcobertura: String,
     formula: String,
+    old_formula: String,
     elemento: String,
 }
 
 impl UpdateQuery {
-    fn new(idcobertura: &str, formula: &str, elemento: &str) -> UpdateQuery {
+    fn new(idcobertura: &str, formula: &str, old_formula: &str, elemento: &str) -> UpdateQuery {
         UpdateQuery {
             idcobertura: idcobertura.to_string(),
             formula: formula.to_string(),
+            old_formula: old_formula.to_string(),
             elemento: elemento.to_string(),
         }
     }
@@ -74,6 +77,7 @@ fn main() {
     dotenv().ok();
     let opts = MysqlConnection::new();
     let pool = Pool::new(opts).unwrap();
+    //let mut transactions = TransactionQuerys::new(pool);
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
         eprintln!("Usage: {} <param>", args[0]);
@@ -110,6 +114,7 @@ fn main() {
             Some(UpdateQuery::new(
                 result.idcobertura.as_ref()?,
                 &replace_formula,
+                result.formula.as_ref()?,
                 result.elemento.as_ref()?,
             ))
         } else {
@@ -118,7 +123,17 @@ fn main() {
     }));
 
     for item in &update_formulas {
-        println!("{}", item.formula);
+        let update_query = format!(
+            "UPDATE plantilla_ramo_cobertura_tarifa 
+            SET formula = '{}'
+            WHERE idramo = 3
+            AND idcobertura = '{}'
+            AND elemento = '{}'
+            AND formula = '{}';
+            ",
+            item.formula, item.idcobertura, item.elemento, item.old_formula
+        );
+        println!("{update_query}");
     }
 }
 
