@@ -3,6 +3,7 @@ use mysql::prelude::*;
 use mysql::*;
 use std::env;
 
+#[derive(Debug, PartialEq, Eq)]
 struct MysqlConnection {
     user: Option<String>,
     pass: Option<String>,
@@ -11,12 +12,20 @@ struct MysqlConnection {
     db_name: Option<String>,
 }
 
-impl MysqlConnection {
-    fn new() -> OptsBuilder {
-        OptsBuilder::from_opts(MysqlConnection::config_db())
+impl From<MysqlConnection> for Opts {
+    fn from(conn: MysqlConnection) -> Self {
+        OptsBuilder::new()
+            .user(conn.user)
+            .pass(conn.pass)
+            .ip_or_hostname(conn.ip_or_hostname)
+            .tcp_port(conn.tcp_port)
+            .db_name(conn.db_name)
+            .into()
     }
+}
 
-    fn config_db() -> Opts {
+impl MysqlConnection {
+    fn new() -> MysqlConnection {
         let mysql_user = read_vars("MYSQL_USER");
         let mysql_pass = read_vars("MYSQL_PASS");
         let mysql_port: u16 = read_vars("MYSQL_PORT")
@@ -32,9 +41,8 @@ impl MysqlConnection {
             tcp_port: mysql_port,
             db_name: Some(mysql_db),
         };
-        let opts = Opts::from(mysql_conn);
 
-       opts 
+        mysql_conn
     }
 }
 
@@ -64,13 +72,6 @@ impl UpdateQuery {
 
 fn main() {
     dotenv().ok();
-
-    /*let opts = OptsBuilder::new()
-    .user(Some(&mysql_user))
-    .pass(Some(&mysql_pass))
-    .ip_or_hostname(Some(&mysql_host))
-    .tcp_port(mysql_port)
-    .db_name(Some(&mysql_db));*/
     let opts = MysqlConnection::new();
     let pool = Pool::new(opts).unwrap();
     let args: Vec<String> = env::args().collect();
