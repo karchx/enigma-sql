@@ -98,19 +98,24 @@ fn main() {
         })
         .expect("Failed to fetch data");
 
-    for result in all_formulas.iter() {
-        match (&result.idcobertura, &result.formula, &result.elemento) {
-            (Some(idcobertura), Some(formula), Some(elemento)) => {
-                let formula_underscore = formula.replace(" ", "_");
-                if formula_underscore.contains(where_param) {
-                    let where_without_underscore = where_param.replace("_", " ");
-                    let replace_formula = formula.replace(&where_without_underscore, "TASA");
-                    update_formulas.push(UpdateQuery::new(idcobertura, &replace_formula, elemento));
-                }
-            }
-            _ => {}
+    update_formulas.extend(all_formulas.iter().filter_map(|result| {
+        let formula_underscore = result.formula.as_ref()?.replace(" ", "_");
+        if formula_underscore.contains(where_param) {
+            let where_without_underscore = where_param.replace("_", " ");
+            let replace_formula = result
+                .formula
+                .as_ref()?
+                .replace(&where_without_underscore, "TASA");
+
+            Some(UpdateQuery::new(
+                result.idcobertura.as_ref()?,
+                &replace_formula,
+                result.elemento.as_ref()?,
+            ))
+        } else {
+            None
         }
-    }
+    }));
 
     for item in &update_formulas {
         println!("{}", item.formula);
