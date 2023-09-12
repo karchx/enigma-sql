@@ -75,6 +75,11 @@ fn main() {
     let opts = MysqlConnection::new();
     let pool = Pool::new(opts).unwrap();
     let args: Vec<String> = env::args().collect();
+    if args.len() < 2 {
+        eprintln!("Usage: {} <param>", args[0]);
+        return;
+    }
+
     let where_param = &args[1];
 
     let mut conn = pool.get_conn().unwrap();
@@ -83,7 +88,7 @@ fn main() {
     let all_formulas: Vec<ResultQuery> = conn
         .query_iter("SELECT idcobertura, formula, elemento FROM seguros.plantilla_ramo_cobertura_tarifa WHERE idramo = 3")
         .map(|row| {
-            row.map(|r| r.unwrap())
+            row.map(|r| r.expect("Failed to read row"))
                 .map(|r| {
                     let (idcobertura, formula, elemento) = mysql::from_row(r);
 
@@ -91,7 +96,7 @@ fn main() {
                 })
                 .collect()
         })
-        .unwrap();
+        .expect("Failed to fetch data");
 
     for result in all_formulas.iter() {
         match (&result.idcobertura, &result.formula, &result.elemento) {
